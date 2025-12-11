@@ -5,6 +5,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
 import org.firstinspires.ftc.teamcode.subsystems.DriveSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.IntakeSubsystem;
+import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.TransportSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.FeederSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
@@ -24,12 +25,13 @@ public class MainTeleop extends LinearOpMode {
     private IntakeSubsystem intake;
     private TransportSubsystem transport;
     private FeederSubsystem feeder;
-
+    private ShooterSubsystem shooter;
     private VisionSubsystem vision;
 
 
     // Toggles
     private final Toggle feederToggle = new Toggle();
+    private final Toggle shooterToggle = new Toggle();
 
 
 
@@ -39,6 +41,7 @@ public class MainTeleop extends LinearOpMode {
         intake = new IntakeSubsystem(hardwareMap);
         transport = new TransportSubsystem(hardwareMap);
         feeder = new FeederSubsystem(hardwareMap);
+        shooter = new ShooterSubsystem(hardwareMap);
         vision = new VisionSubsystem(hardwareMap);
 
         vision.init();
@@ -78,21 +81,24 @@ public class MainTeleop extends LinearOpMode {
             if (feeder.isEnabled())         feeder.extendServo();
             else                            feeder.retractServo();
 
-            // Vision
-            List<AprilTagDetection> currentDetections = vision.getDetections();
-            if (!currentDetections.isEmpty()) {
-                for (AprilTagDetection detection : currentDetections) {
-                    if (detection.metadata != null) {
 
-                        double myDistance = vision.getDistanceToTag(detection);
+            // Shooter - Hood
+            shooter.moveHoodManually(gamepad1.left_bumper, gamepad1.left_trigger > 0.2);
 
-                        telemetry.addLine(String.format("Tag ID: %d", detection.id));
-                        telemetry.addLine(String.format("Hesaplanan Mesafe: %.2f inch", myDistance));
-                        telemetry.addLine(String.format("SDK Range: %.2f inch", detection.ftcPose.range));
-                        telemetry.addLine("-----------------");
-                    }
-                }
-            } else telemetry.addLine("Görüntüde AprilTag Yok.");
+            // Shooter
+            if (shooterToggle.update(gamepad1.b)) {shooter.setEnabled(!shooter.isEnabled());}
+            if (shooter.isEnabled()) shooter.forward(1200.0);
+            else shooter.stop();
+
+
+
+
+                    // Telemetry
+            telemetry.addData("Feeder Enabled", feeder.isEnabled());
+            telemetry.addData("Shooter Enabled", shooter.isEnabled());
+            telemetry.addData("Shooter Velocity", shooter.getVelocity());
+            telemetry.addData("Hood Position", shooter.getHoodPosition());
+
 
             telemetry.update();
         }
