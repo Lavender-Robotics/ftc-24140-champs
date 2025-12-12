@@ -42,9 +42,9 @@ public class MainTeleop extends LinearOpMode {
         transport = new TransportSubsystem(hardwareMap);
         feeder = new FeederSubsystem(hardwareMap);
         shooter = new ShooterSubsystem(hardwareMap);
-        vision = new VisionSubsystem(hardwareMap);
+        vision = new VisionSubsystem(hardwareMap, telemetry);
 
-        vision.init();
+
 
         telemetry.addLine("Robot Kullanıma Hazır ");
         telemetry.update();
@@ -90,10 +90,13 @@ public class MainTeleop extends LinearOpMode {
             if (shooter.isEnabled()) shooter.forward(1200.0);
             else shooter.stop();
 
+            vision.update();
+            AprilTagDetection tag = vision.getTagByID(24);
+            vision.displayDetectionTelemetry(tag);
 
 
 
-                    // Telemetry
+            // Telemetry
             telemetry.addData("Feeder Enabled", feeder.isEnabled());
             telemetry.addData("Shooter Enabled", shooter.isEnabled());
             telemetry.addData("Shooter Velocity", shooter.getVelocity());
