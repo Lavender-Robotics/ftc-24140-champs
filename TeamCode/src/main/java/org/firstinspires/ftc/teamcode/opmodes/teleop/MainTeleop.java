@@ -90,13 +90,11 @@ public class MainTeleop extends LinearOpMode {
             if (shooter.isEnabled()) shooter.forward(1200.0);
             else shooter.stop();
 
-            vision.update();
-            AprilTagDetection tag = vision.getTagByID(24);
-            vision.displayDetectionTelemetry(tag);
-
 
 
             // Telemetry
+            vision.getTagTelemetry(); // for vision test
+
             telemetry.addData("Feeder Enabled", feeder.isEnabled());
             telemetry.addData("Shooter Enabled", shooter.isEnabled());
             telemetry.addData("Shooter Velocity", shooter.getVelocity());
@@ -105,5 +103,7 @@ public class MainTeleop extends LinearOpMode {
 
             telemetry.update();
         }
+
+        vision.close();
     }
 }

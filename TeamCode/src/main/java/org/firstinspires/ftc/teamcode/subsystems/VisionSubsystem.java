@@ -2,7 +2,13 @@ package org.firstinspires.ftc.teamcode.subsystems;
 
 import android.util.Size;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.Position;
+import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
@@ -13,28 +19,36 @@ import java.util.List;
 
 public class VisionSubsystem {
 
-    private static final double CAMERA_HEIGHT = 12.992126; // Kameranın yerden yüksekliği
-    private static final double CAMERA_ANGLE = 10.0;  // Kameranın açısı
-    private static final double TAG_HEIGHT = 6.0;     // AprilTag'in merkez yüksekliği (örnek)
+    private static final String WEBCAM_NAME = "Webcam 1";
+
 
     private AprilTagProcessor aprilTag;
     private VisionPortal visionPortal;
     private HardwareMap hardwareMap;
+    private final Telemetry telemetry;
 
-    public VisionSubsystem(HardwareMap hardwareMap) {
+
+
+    private Position cameraPosition = new Position(DistanceUnit.INCH, 0, 0, 0, 0);
+    private YawPitchRollAngles cameraOrientation = new YawPitchRollAngles(AngleUnit.DEGREES, 0, -90, 0, 0);
+
+
+
+    public VisionSubsystem(HardwareMap hardwareMap, Telemetry telemetry) {
         this.hardwareMap = hardwareMap;
-    }
+        this.telemetry = telemetry;
 
-    public void init() {
         aprilTag = new AprilTagProcessor.Builder()
-                .setDrawAxes(true)
-                .setDrawCubeProjection(true)
-                .setDrawTagOutline(true)
-                .setTagLibrary(AprilTagGameDatabase.getCenterStageTagLibrary())
+//                .setDrawAxes(true)
+//                .setDrawCubeProjection(true)
+//                .setDrawTagOutline(true)
+//                .setTagLibrary(AprilTagGameDatabase.getCenterStageTagLibrary())
+//                .setOutputUnits(DistanceUnit.INCH, AngleUnit.DEGREES)
+                .setCameraPose(cameraPosition, cameraOrientation)
                 .build();
 
         VisionPortal.Builder builder = new VisionPortal.Builder();
-        builder.setCamera(hardwareMap.get(WebcamName.class, "Webcam 1"));
+        builder.setCamera(hardwareMap.get(WebcamName.class, WEBCAM_NAME));
         builder.setCameraResolution(new Size(640, 480));
         builder.addProcessor(aprilTag);
 
@@ -42,28 +56,40 @@ public class VisionSubsystem {
     }
 
 
-    public List<AprilTagDetection> getDetections() { return aprilTag.getDetections(); }
+    public void getTagTelemetry() {
 
+        List<AprilTagDetection> currentDetections = aprilTag.getDetections();
+        telemetry.addData("# AprilTags Detected", currentDetections.size());
 
-    public double getDistanceToTag(AprilTagDetection detection){
-        if (detection == null || detection.ftcPose == null) return 0;
+        // Step through the list of detections and display info for each one.
+        for (AprilTagDetection detection : currentDetections) {
+            if (detection.metadata != null) {
+                telemetry.addLine(String.format("\n==== (ID %d) %s", detection.id, detection.metadata.name));
+                // Only use tags that don't have Obelisk in them
+                if (!detection.metadata.name.contains("Obelisk")) {
+                    telemetry.addLine(String.format("XYZ %6.1f %6.1f %6.1f  (inch)",
+                            detection.robotPose.getPosition().x,
+                            detection.robotPose.getPosition().y,
+                            detection.robotPose.getPosition().z));
+                    telemetry.addLine(String.format("PRY %6.1f %6.1f %6.1f  (deg)",
+                            detection.robotPose.getOrientation().getPitch(AngleUnit.DEGREES),
+                            detection.robotPose.getOrientation().getRoll(AngleUnit.DEGREES),
+                            detection.robotPose.getOrientation().getYaw(AngleUnit.DEGREES)));
+                }
+            } else {
+                telemetry.addLine(String.format("\n==== (ID %d) Unknown", detection.id));
+                telemetry.addLine(String.format("Center %6.0f %6.0f   (pixels)", detection.center.x, detection.center.y));
+            }
+        }   // end for() loop
 
-        double deltaHeight = TAG_HEIGHT - CAMERA_HEIGHT;
+        // Add "key" information to telemetry
+        telemetry.addLine("\nkey:\nXYZ = X (Right), Y (Forward), Z (Up) dist.");
+        telemetry.addLine("PRY = Pitch, Roll & Yaw (XYZ Rotation)");
 
-        double detectionAngle = detection.ftcPose.elevation;
-        double totalAngleDeg = CAMERA_ANGLE + detectionAngle;
-        double totalAngleRad = Math.toRadians(totalAngleDeg);
-
-        if (Math.abs(Math.tan(totalAngleRad)) < 0.001) return 0; // Çok küçük açı hatası
-        double distance = deltaHeight / Math.tan(totalAngleRad);
-
-        return Math.abs(distance);
     }
 
 
+
     public void close() { if (visionPortal != null) visionPortal.close(); }
-
-
-
 
 }
