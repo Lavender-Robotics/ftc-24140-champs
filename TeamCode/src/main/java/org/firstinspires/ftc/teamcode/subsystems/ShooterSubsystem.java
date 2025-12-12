@@ -24,8 +24,8 @@ public class ShooterSubsystem {
 
 
     public ShooterSubsystem(HardwareMap hw) {
-        shooter_motor_p = hw.get(DcMotorEx.class, "motor_shooter_p");
-        shooter_motor_s = hw.get(DcMotorEx.class, "motor_shooter_s");
+        shooter_motor_p = hw.get(DcMotorEx.class, "motor_shooter");
+        shooter_motor_s = hw.get(DcMotorEx.class, "motor_shooter1");
 
         shooter_motor_p.setDirection(DcMotorSimple.Direction.REVERSE);
         shooter_motor_s.setDirection(DcMotorSimple.Direction.FORWARD);

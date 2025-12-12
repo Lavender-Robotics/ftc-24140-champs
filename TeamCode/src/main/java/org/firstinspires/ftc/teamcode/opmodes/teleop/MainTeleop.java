@@ -12,6 +12,8 @@ import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 
 import org.firstinspires.ftc.teamcode.util.Toggle;
+import org.firstinspires.ftc.teamcode.util.Timer;
+
 import java.util.List;
 
 
@@ -31,9 +33,10 @@ public class MainTeleop extends LinearOpMode {
 
     // Toggles
     private final Toggle feederToggle = new Toggle();
+    private final Toggle feederPeriodicToggle = new Toggle();
     private final Toggle shooterToggle = new Toggle();
 
-
+    private final Toggle intakeToggle = new Toggle();
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -42,9 +45,9 @@ public class MainTeleop extends LinearOpMode {
         transport = new TransportSubsystem(hardwareMap);
         feeder = new FeederSubsystem(hardwareMap);
         shooter = new ShooterSubsystem(hardwareMap);
-        vision = new VisionSubsystem(hardwareMap);
+        vision = new VisionSubsystem(hardwareMap, telemetry);
 
-        vision.init();
+
 
         telemetry.addLine("Robot Kullanıma Hazır ");
         telemetry.update();
@@ -53,6 +56,7 @@ public class MainTeleop extends LinearOpMode {
         if (isStopRequested()) return;
 
         while (opModeIsActive()) {
+
             double x  = gamepad1.left_stick_x;
             double rx  = gamepad1.right_stick_x;
             double y = -gamepad1.left_stick_y;
@@ -66,8 +70,14 @@ public class MainTeleop extends LinearOpMode {
 
 
             // Intake (A)
-            if (gamepad1.a) intake.forward(1.0);
-            else intake.stop();
+            if(gamepad1.x) {
+                intake.reverse(1.0);
+            } else {
+                if (intakeToggle.update(gamepad1.a)) intake.setEnabled(!intake.isEnabled());
+                if (intake.isEnabled()) intake.forward(1.0);
+                else intake.stop();
+            }
+
 
 
             // Transport
@@ -81,6 +91,7 @@ public class MainTeleop extends LinearOpMode {
             if (feeder.isEnabled())         feeder.extendServo();
             else                            feeder.retractServo();
 
+            if (feederPeriodicToggle.update(gamepad1.dpad_left)) feeder.setPeriodicEnabled(!feeder.isPeriodicEnabled());
 
             // Shooter - Hood
             shooter.moveHoodManually(gamepad1.left_bumper, gamepad1.left_trigger > 0.2);
@@ -89,11 +100,19 @@ public class MainTeleop extends LinearOpMode {
             if (shooterToggle.update(gamepad1.b)) {shooter.setEnabled(!shooter.isEnabled());}
             if (shooter.isEnabled()) shooter.forward(1200.0);
             else shooter.stop();
+            // Shooter/Mixed
 
 
 
 
-                    // Telemetry
+
+            vision.update();
+            AprilTagDetection tag = vision.getTagByID(24);
+            vision.displayDetectionTelemetry(tag);
+
+
+
+            // Telemetry
             telemetry.addData("Feeder Enabled", feeder.isEnabled());
             telemetry.addData("Shooter Enabled", shooter.isEnabled());
             telemetry.addData("Shooter Velocity", shooter.getVelocity());
