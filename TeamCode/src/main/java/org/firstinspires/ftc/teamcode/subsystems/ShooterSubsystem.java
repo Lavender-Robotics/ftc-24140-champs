@@ -3,73 +3,130 @@ package org.firstinspires.ftc.teamcode.subsystems;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
-import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.Servo;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
 public class ShooterSubsystem {
-    private final DcMotorEx shooter_motor_p;
-    private final DcMotorEx shooter_motor_s;
-    private final Servo shooter_servo;
 
-
-    // Servo Constants & Variables
-    private static final double POS_LOW = 0.0;   // minimum angle
-    private static final double POS_HIGH = 1.0;  // maximum angle
-    private static final double SERVO_SPEED = 0.005;
-    private double currentTargetPosition = POS_LOW;
-
-
+    // ================= DONANIMLAR =================
+    private final DcMotorEx shooterMotorP; // Primary
+    private final DcMotorEx shooterMotorS; // Secondary
+    private final Servo hoodServo;
 
     private boolean enabled = false;
 
+    // ================= KALİBRASYON TABLOLARI =================
+    // Mesafe (inç) tablosu
+    private final double[] calRangesIn  = { 40,   60,   80,   100 };
 
+    // O mesafeye karşılık gelen Hız (Derece/Saniye)
+    private final double[] calSpeedsDeg = { 1500, 1600, 1800, 2200 };
+
+    // O mesafeye karşılık gelen Hood Pozisyonu (0.0 - 1.0 arası)
+    // NOT: Bu değerleri robotunu test ederek bulmalısın!
+    private final double[] calHoodPos   = { 0.45, 0.40, 0.35, 0.30 };
+
+    private static final double MAX_DPS = 2500.0; // Maksimum hız limiti
+
+    // ================= CONSTRUCTOR =================
     public ShooterSubsystem(HardwareMap hw) {
-        shooter_motor_p = hw.get(DcMotorEx.class, "motor_shooter_p");
-        shooter_motor_s = hw.get(DcMotorEx.class, "motor_shooter_s");
+        // --- Motor Tanımları ---
+        shooterMotorP = hw.get(DcMotorEx.class, "motor_shooter_p");
+        shooterMotorS = hw.get(DcMotorEx.class, "motor_shooter_s");
 
-        shooter_motor_p.setDirection(DcMotorSimple.Direction.REVERSE);
-        shooter_motor_s.setDirection(DcMotorSimple.Direction.FORWARD);
+        // --- Servo Tanımı ---
+        // Config dosyasında servo isminin "servo_hood" olduğundan emin ol
+        hoodServo = hw.get(Servo.class, "servo_hood");
 
-        shooter_motor_p.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-        shooter_motor_s.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        // --- Yön Ayarları ---
+        shooterMotorP.setDirection(DcMotorSimple.Direction.REVERSE);
+        shooterMotorS.setDirection(DcMotorSimple.Direction.FORWARD);
 
-        shooter_motor_p.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        shooter_motor_s.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        // --- Davranış Ayarları ---
+        shooterMotorP.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        shooterMotorS.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
-        shooter_motor_p.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        shooter_motor_s.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        // --- Encoder ve Mod Ayarları ---
+        // Önce encoderları sıfırla
+        shooterMotorP.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        shooterMotorS.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
-        shooter_servo = hw.get(Servo.class, "servo_hood");
-        shooter_servo.setPosition(POS_LOW);
+        // Hız kontrolü (Velocity Control) için RUN_USING_ENCODER kullanıyoruz
+        shooterMotorP.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        shooterMotorS.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
     }
 
-    public void forward(double velocity) {
-        shooter_motor_p.setVelocity(Math.abs(velocity));
-        shooter_motor_s.setVelocity(Math.abs(velocity));
-    }
-    public void reverse(double velocity) {
-        shooter_motor_p.setVelocity(-Math.abs(velocity));
-        shooter_motor_s.setVelocity(-Math.abs(velocity));
-    }
-    public void stop() {
-        shooter_motor_p.setVelocity(0);
-        shooter_motor_s.setVelocity(0);
-    }
-
-    public void moveHoodManually(boolean up, boolean down) {
-        if (up && currentTargetPosition < POS_HIGH) {
-            currentTargetPosition = Math.min(POS_HIGH, currentTargetPosition + SERVO_SPEED);
-            shooter_servo.setPosition(currentTargetPosition);
-        } else if (down && currentTargetPosition > POS_LOW) {
-            currentTargetPosition = Math.max(POS_LOW, currentTargetPosition - SERVO_SPEED);
-            shooter_servo.setPosition(currentTargetPosition);
+    // ================= ENABLE / DISABLE =================
+    public void setEnabled(boolean on) {
+        enabled = on;
+        if (!on) {
+            stopShooter();
         }
     }
 
+    public boolean isEnabled() {
+        return enabled;
+    }
 
-    // Telemetry
-    public void setEnabled(boolean on) { this.enabled = on; if (!on) stop(); }
-    public boolean isEnabled() { return enabled; }
-    public double getVelocity() { return shooter_motor_p.getVelocity(); }
-    public double getHoodPosition() { return currentTargetPosition; }
+    private void stopShooter() {
+        shooterMotorP.setVelocity(0);
+        shooterMotorS.setVelocity(0);
+    }
+
+    // ================= MAIN API =================
+    /**
+     * Mesafeye göre hem atıcı hızını hem de hood açısını ayarlar.
+     * @param rangeInches Hedefe olan uzaklık (inç)
+     */
+    public void regulateByRange(double rangeInches) {
+        if (!enabled) {
+            stopShooter();
+            return;
+        }
+
+        // 1. Enterpolasyon ile hedef değerleri bul
+        double targetSpeedDegPerSec = interpolate(rangeInches, calRangesIn, calSpeedsDeg);
+        double targetHoodPosition   = interpolate(rangeInches, calRangesIn, calHoodPos);
+
+        // 2. Motorlara hız ver (RUN_USING_ENCODER olduğu için setVelocity kullanıyoruz)
+        // AngleUnit.DEGREES kullanarak derece/saniye cinsinden hız veriyoruz.
+        shooterMotorP.setVelocity(targetSpeedDegPerSec, AngleUnit.DEGREES);
+        shooterMotorS.setVelocity(targetSpeedDegPerSec, AngleUnit.DEGREES);
+
+        // 3. Servoyu ayarla
+        hoodServo.setPosition(targetHoodPosition);
+    }
+
+    // Manuel test veya sabit atışlar için
+    public void setManualPower(double speedDPS, double hoodPos) {
+        if(!enabled) return;
+        shooterMotorP.setVelocity(speedDPS, AngleUnit.DEGREES);
+        shooterMotorS.setVelocity(speedDPS, AngleUnit.DEGREES);
+        hoodServo.setPosition(hoodPos);
+    }
+
+    // Telemetri için mevcut hızı döner (Primary motoru baz alır)
+    public double getCurrentVelocity() {
+        return shooterMotorP.getVelocity(AngleUnit.DEGREES);
+    }
+
+    // ================= HELPER (INTERPOLATION) =================
+    // Hem hız hem de hood için tek bir enterpolasyon fonksiyonu kullanabiliriz
+    private double interpolate(double r, double[] ranges, double[] outputs) {
+        // Menzil dışı (çok yakın)
+        if (r <= ranges[0]) return outputs[0];
+
+        // Menzil dışı (çok uzak)
+        if (r >= ranges[ranges.length - 1]) return outputs[outputs.length - 1];
+
+        // Aradaki değerler için lineer enterpolasyon
+        for (int i = 1; i < ranges.length; i++) {
+            if (r <= ranges[i]) {
+                double t = (r - ranges[i - 1]) / (ranges[i] - ranges[i - 1]);
+                return outputs[i - 1] + t * (outputs[i] - outputs[i - 1]);
+            }
+        }
+        return outputs[outputs.length - 1];
+    }
 }
