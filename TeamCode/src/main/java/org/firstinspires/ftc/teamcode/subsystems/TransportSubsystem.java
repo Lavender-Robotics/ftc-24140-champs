@@ -8,8 +8,6 @@ import com.qualcomm.robotcore.hardware.CRServo;
 public class TransportSubsystem {
     private CRServo transport_servo_p;
     private CRServo transport_servo_s;
-
-
     public TransportSubsystem(HardwareMap hw) {
         transport_servo_p = hw.get(CRServo.class, "servo_transport");
         transport_servo_s = hw.get(CRServo.class, "servo_transport1");

@@ -19,38 +19,50 @@ public class Constants {
     public static final FollowerConstants followerConstants = new FollowerConstants()
             .mass(13.0)
 
-            // Translational PIDF: scaled for mass and 312 RPM limitation
-            // P increased (0.15) to counteract heavier inertia
-            // I remains zero (no steady-state error in this regime)
-            // D increased (0.02) for damping oscillation from added mass
-            .translationalPIDFCoefficients(new PIDFCoefficients(0.15, 0, 0.02, 0))
-            //.secondaryTranslationalPIDFCoefficients(new PIDFCoefficients(0.12, 0, 0.015, 0))
+            // Translational PIDF - Balanced for all error ranges
+            .translationalPIDFCoefficients(new PIDFCoefficients(
+                    0.1,    // P: Mid-range between Pedro's 0.03 and 0.4
+                    0.0,    // I: Zero (no integral for path following)
+                    0.01,   // D: Light damping for stability
+                    0.015   // F: Feedforward from Pedro's example
+            ))
 
-            // Heading PIDF: rotational dynamics scale differently than translation
-            // P increased (0.14) for tighter heading hold
-            // D increased (0.025) to prevent wobble from moment of inertia
-            .headingPIDFCoefficients(new PIDFCoefficients(0.14, 0, 0.025, 0))
-            //.secondaryHeadingPIDFCoefficients(new PIDFCoefficients(0.11, 0, 0.02, 0))
+            // Heading PIDF - Balanced for all error ranges
+            .headingPIDFCoefficients(new PIDFCoefficients(
+                    1.2,    // P: Mid-range between Pedro's 0.8 and 2.5
+                    0.0,    // I: Zero
+                    0.05,   // D: Damping for rotational stability
+                    0.01    // F: Feedforward from Pedro's example
+            ))
 
-            // Drive PIDF (motor velocity control): critical for 312 RPM motors
-            // P increased (0.14) for responsive acceleration
-            // D increased (0.015) for smooth ramp without overshoot
-            // F (feedforward) keeps the same (0.6) as motor characteristics dominate
-            .drivePIDFCoefficients(new FilteredPIDFCoefficients(0.14, 0.0, 0.015, 0.6, 0.0))
-            //.secondaryDrivePIDFCoefficients(new FilteredPIDFCoefficients(0.11, 0, 0.012, 0.6, 0.01))
+            // Drive PIDF - Motor velocity control
+            .drivePIDFCoefficients(new FilteredPIDFCoefficients(
+                    0.1,     // P: From Pedro's primary example
+                    0.0,     // I: Zero
+                    0.00035, // D: From Pedro's example
+                    0.6,     // F: Critical feedforward (DO NOT CHANGE)
+                    0.015    // Filter: From Pedro's example
+            ))
 
-            .centripetalScaling(0.005)
+            .centripetalScaling(0.0005)  // From Pedro's official example
 
             .useSecondaryTranslationalPIDF(false)
             .useSecondaryHeadingPIDF(false)
             .useSecondaryDrivePIDF(false)
-            .forwardZeroPowerAcceleration(-29.484908198835896)
-            .lateralZeroPowerAcceleration(-46.33016375242318);
 
-    // ========== PATH (YOL) KISITLAMALARI ==========
+            .forwardZeroPowerAcceleration(-28.262818322015583)
+            .lateralZeroPowerAcceleration(-48.37583974791519);
+
+    // Path Constraints - From Pedro's official example
     public static final PathConstraints pathConstraints = new PathConstraints(
-            64.82643620047983,   // max lineer hız (inç/sn) – measured
-            53.84999000369095    // max lineer ivme (inç/sn²) – measured
+            0.995,   // tValue constraint (path completion threshold)
+            0.1,     // Velocity constraint weight
+            0.1,     // Translational constraint weight
+            0.009,   // Heading constraint weight
+            50,      // Timeout (seconds)
+            1.25,    // Braking strength
+            10,      // Bezier curve search limit (NEVER CHANGE)
+            1        // Braking start distance
     );
 
     public static final MecanumConstants driveConstants = new MecanumConstants()
@@ -59,8 +71,8 @@ public class Constants {
             .rightRearMotorName("back_right")
             .leftRearMotorName("back_left")
             .leftFrontMotorName("front_left")
-            .xVelocity(65.15093081016241)
-            .yVelocity(55.679219884196606)
+            .xVelocity(67.34647063007506)
+            .yVelocity(55.24511959045891)
             .leftFrontMotorDirection(DcMotorSimple.Direction.REVERSE)
             .leftRearMotorDirection(DcMotorSimple.Direction.REVERSE)
             .rightFrontMotorDirection(DcMotorSimple.Direction.FORWARD)
@@ -75,9 +87,6 @@ public class Constants {
             .forwardPodY(-1.772)
             .strafePodX(-6.89);
 
-//    public static final double FORWARD_MULTIPLIER = -30176.036036758956;
-//    public static final double LATERAL_MULTIPLIER = 42188.036632755916;
-//    public static final double TURN_MULTIPLIER    = 1.00659472956212005;
 
     public static Follower createFollower(HardwareMap hardwareMap) {
         return new FollowerBuilder(followerConstants, hardwareMap)
@@ -86,6 +95,4 @@ public class Constants {
                 .pinpointLocalizer(localizerConstants)
                 .build();
     }
-
-
 }

@@ -40,7 +40,7 @@ public class ShooterSubsystem {
         shooter_motor_s.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         shooter_servo = hw.get(Servo.class, "servo_hood");
-        shooter_servo.setPosition(POS_LOW);
+
     }
 
     public void forward(double velocity) {

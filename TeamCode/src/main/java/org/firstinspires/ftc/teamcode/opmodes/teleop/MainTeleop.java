@@ -29,7 +29,7 @@ public class MainTeleop extends LinearOpMode {
     private FeederSubsystem feeder;
     private ShooterSubsystem shooter;
     private VisionSubsystem vision;
-
+    private boolean reverse = false;
 
     // Toggles
     private final Toggle feederToggle = new Toggle();
@@ -72,26 +72,47 @@ public class MainTeleop extends LinearOpMode {
             // Intake (A)
             if(gamepad1.x) {
                 intake.reverse(1.0);
+                transport.forward(1.0);
+                reverse = true;
             } else {
+                reverse = false;
                 if (intakeToggle.update(gamepad1.a)) intake.setEnabled(!intake.isEnabled());
-                if (intake.isEnabled()) intake.forward(1.0);
-                else intake.stop();
+                if (intake.isEnabled()) {
+                    intake.forward(1.0);
+                }
+                else {
+                    intake.stop();
+                    //transport.stop();
+                }
             }
 
 
 
             // Transport
-            if (gamepad1.dpad_up)           transport.forward(1.0);
-            else if (gamepad1.dpad_down)    transport.reverse(1.0);
-            else                            transport.stop();
+//            if (gamepad1.dpad_up)           transport.forward(1.0);
+//            else if (gamepad1.dpad_down)    transport.reverse(1.0);
+//            else                            transport.stop();
 
 
             // Feeder
-            if (feederToggle.update(gamepad1.y))  feeder.setEnabled(!feeder.isEnabled());
-            if (feeder.isEnabled())         feeder.extendServo();
-            else                            feeder.retractServo();
+            if (shooter.getVelocity() <= 1250 && shooter.getVelocity() >= 1150) {
+                if (feederToggle.update(gamepad1.y)) feeder.setEnabled(!feeder.isEnabled());
+                if (feeder.isEnabled()) {
+                    if (!reverse && feeder.isTransformReadyCheck()) {
+                        transport.reverse(1.0);
+                    }
+                    feeder.periodicServo();
+                } else {
+                    feeder.manualServo(0.71);
+                    transport.stop();
+                }
+            }
+            else {
+                feeder.manualServo(0.71);
+                transport.stop();
+            }
 
-            if (feederPeriodicToggle.update(gamepad1.dpad_left)) feeder.setPeriodicEnabled(!feeder.isPeriodicEnabled());
+            //if (feederPeriodicToggle.update(gamepad1.dpad_left)) feeder.setPeriodicEnabled(!feeder.isPeriodicEnabled());
 
             // Shooter - Hood
             shooter.moveHoodManually(gamepad1.left_bumper, gamepad1.left_trigger > 0.2);
