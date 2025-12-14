@@ -11,7 +11,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
-@Autonomous(name = "Pedro Pathing Autonomous", group = "Autonomous")
+@Autonomous(name = "KüçükÜçgenMavi", group = "Autonomous")
 @Configurable
 public class KüçükÜçgen extends OpMode {
 
@@ -70,14 +70,14 @@ public class KüçükÜçgen extends OpMode {
 
     public int autonomousPathUpdate() {
         switch (pathState) {
-            case 1: // Path2 takip ediliyor
+            case 1:
                 if (!follower.isBusy()) {
                     pathState = 2; // Path tamamlandı
                 }
                 break;
 
-            case 2: // Tamamlandı
-                // Autonomous bitti
+            case 2:
+
                 break;
         }
 
