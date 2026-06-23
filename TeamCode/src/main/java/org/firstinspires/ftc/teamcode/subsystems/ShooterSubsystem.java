@@ -9,7 +9,7 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 public class ShooterSubsystem {
     private final DcMotorEx shooter_motor_p;
     private final DcMotorEx shooter_motor_s;
-    private final Servo shooter_servo;
+    //private final Servo shooter_servo;
 
 
     // Servo Constants & Variables
@@ -39,8 +39,8 @@ public class ShooterSubsystem {
         shooter_motor_p.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         shooter_motor_s.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
-        shooter_servo = hw.get(Servo.class, "servo_hood");
-        shooter_servo.setPosition(POS_LOW);
+        //shooter_servo = hw.get(Servo.class, "servo_hood");
+       // shooter_servo.setPosition(POS_LOW);
     }
 
     public void forward(double velocity) {
@@ -56,15 +56,15 @@ public class ShooterSubsystem {
         shooter_motor_s.setVelocity(0);
     }
 
-    public void moveHoodManually(boolean up, boolean down) {
-        if (up && currentTargetPosition < POS_HIGH) {
-            currentTargetPosition = Math.min(POS_HIGH, currentTargetPosition + SERVO_SPEED);
-            shooter_servo.setPosition(currentTargetPosition);
-        } else if (down && currentTargetPosition > POS_LOW) {
-            currentTargetPosition = Math.max(POS_LOW, currentTargetPosition - SERVO_SPEED);
-            shooter_servo.setPosition(currentTargetPosition);
-        }
-    }
+//    public void moveHoodManually(boolean up, boolean down) {
+//        if (up && currentTargetPosition < POS_HIGH) {
+//            currentTargetPosition = Math.min(POS_HIGH, currentTargetPosition + SERVO_SPEED);
+//            shooter_servo.setPosition(currentTargetPosition);
+//        } else if (down && currentTargetPosition > POS_LOW) {
+//            currentTargetPosition = Math.max(POS_LOW, currentTargetPosition - SERVO_SPEED);
+//            shooter_servo.setPosition(currentTargetPosition);
+//        }
+//    }
 
 
     // Telemetry

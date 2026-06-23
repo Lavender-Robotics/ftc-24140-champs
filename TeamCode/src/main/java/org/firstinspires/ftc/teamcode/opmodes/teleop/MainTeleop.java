@@ -8,7 +8,7 @@ import org.firstinspires.ftc.teamcode.subsystems.IntakeSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.TransportSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.FeederSubsystem;
-import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
+//import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 
 import org.firstinspires.ftc.teamcode.util.Toggle;
@@ -26,7 +26,7 @@ public class MainTeleop extends LinearOpMode {
     private TransportSubsystem transport;
     private FeederSubsystem feeder;
     private ShooterSubsystem shooter;
-    private VisionSubsystem vision;
+    //private VisionSubsystem vision;
 
 
     // Toggles
@@ -42,7 +42,7 @@ public class MainTeleop extends LinearOpMode {
         transport = new TransportSubsystem(hardwareMap);
         feeder = new FeederSubsystem(hardwareMap);
         shooter = new ShooterSubsystem(hardwareMap);
-        vision = new VisionSubsystem(hardwareMap, telemetry);
+        //vision = new VisionSubsystem(hardwareMap, telemetry);
 
 
 
@@ -83,7 +83,7 @@ public class MainTeleop extends LinearOpMode {
 
 
             // Shooter - Hood
-            shooter.moveHoodManually(gamepad1.left_bumper, gamepad1.left_trigger > 0.2);
+            //shooter.moveHoodManually(gamepad1.left_bumper, gamepad1.left_trigger > 0.2);
 
             // Shooter
             if (shooterToggle.update(gamepad1.b)) {shooter.setEnabled(!shooter.isEnabled());}
@@ -93,7 +93,7 @@ public class MainTeleop extends LinearOpMode {
 
 
             // Telemetry
-            vision.getTagTelemetry(); // for vision test
+            //vision.getTagTelemetry(); // for vision test
 
             telemetry.addData("Feeder Enabled", feeder.isEnabled());
             telemetry.addData("Shooter Enabled", shooter.isEnabled());
@@ -104,6 +104,6 @@ public class MainTeleop extends LinearOpMode {
             telemetry.update();
         }
 
-        vision.close();
+        //vision.close();
     }
 }

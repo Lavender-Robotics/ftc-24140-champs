@@ -14,6 +14,7 @@ public class FeederSubsystem {
 
     public FeederSubsystem(HardwareMap hw) {
         feeder_servo = hw.get(Servo.class, "kicker");
+        feeder_servo.setDirection(Servo.Direction.REVERSE);
         feeder_servo.setPosition(START_POS);
     }
 
