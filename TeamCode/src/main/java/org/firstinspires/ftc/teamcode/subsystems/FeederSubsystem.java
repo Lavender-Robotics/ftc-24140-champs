@@ -13,7 +13,7 @@ public class FeederSubsystem {
 
 
     public FeederSubsystem(HardwareMap hw) {
-        feeder_servo = hw.get(Servo.class, "servo_feeder");
+        feeder_servo = hw.get(Servo.class, "kicker");
         feeder_servo.setPosition(START_POS);
     }
 

@@ -11,8 +11,8 @@ public class TransportSubsystem {
 
 
     public TransportSubsystem(HardwareMap hw) {
-        transport_servo_p = hw.get(CRServo.class, "servo_transport");
-        transport_servo_s = hw.get(CRServo.class, "servo_transport1");
+        transport_servo_p = hw.get(CRServo.class, "servosol");
+        transport_servo_s = hw.get(CRServo.class, "servosag");
     }
 
     public void forward(double power) {

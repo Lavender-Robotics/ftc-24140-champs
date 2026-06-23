@@ -8,7 +8,7 @@ public class IntakeSubsystem {
     private final DcMotorEx intake_motor;
 
     public IntakeSubsystem(HardwareMap hw) {
-        intake_motor = hw.get(DcMotorEx.class, "motor_intake");
+        intake_motor = hw.get(DcMotorEx.class, "intake");
         intake_motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
     }
 
