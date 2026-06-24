@@ -7,15 +7,16 @@ public class FeederSubsystem {
     private Servo feeder_servo;
 
 
-    private static final double START_POS = 0.57;      // En alt pozisyon (başlangıç)
-    private static final double HIT_POS = 0.8;       // Top vuruş pozisyonu (0.25-0.30 arası)
+    private static final double START_POS = 0.9;              // Aşağı rest (horn buraya takılır)
+    private static final double HIT_POS = 0.6;     // 180° yukarı vuruş pozisyonu (0.1)
     private boolean enabled = false;
 
 
     public FeederSubsystem(HardwareMap hw) {
         feeder_servo = hw.get(Servo.class, "kicker");
-        feeder_servo.setDirection(Servo.Direction.REVERSE);
+        feeder_servo.setDirection(Servo.Direction.FORWARD);
         feeder_servo.setPosition(START_POS);
+
     }
 
 
