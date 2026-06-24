@@ -15,7 +15,7 @@ import org.firstinspires.ftc.teamcode.util.Toggle;
 import java.util.List;
 
 
-@TeleOp(name = "MainTeleOp2")
+@TeleOp(name = "MainTeleOp")
 public class MainTeleop extends LinearOpMode {
 
 

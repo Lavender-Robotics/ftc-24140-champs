@@ -21,6 +21,7 @@ public class LLTest extends OpMode {
     @Override
     public void start() {
         LL.start();
+        drive.resetYaw();   // "ileri" yonunu su anki heading'e gore sifirla
     }
 
     @Override
@@ -34,7 +35,15 @@ public class LLTest extends OpMode {
             rx = LL.getGoalHeadingCorrection();
         }
 
-        drive.driveRobotCentric(x, y, rx);
+        drive.driveFieldCentric(x, y, rx);
+
+        // --- Teshis telemetrisi (surusu etkilemez) ---
+        telemetry.addData("Heading (deg)", "%.1f", drive.getHeadingDeg());
+        drive.logEncoders(telemetry);
+        telemetry.addLine("TEST: Sol stick ILERI it, sayaclara bak.");
+        telemetry.addLine(" - Hepsi duzgun ARTMALI/AZALMALI.");
+        telemetry.addLine(" - Biri sabit/zipliyorsa o motorun encoder'i bozuk.");
+        telemetry.update();
     }
 
     @Override

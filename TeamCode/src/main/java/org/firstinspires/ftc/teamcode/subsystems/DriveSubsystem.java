@@ -33,6 +33,12 @@ public class DriveSubsystem {
         fr.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         br.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
+        // Encoder'lari kullan: kapali-cevrim hiz kontrolu (her teker komut hizina kilitlenir)
+        for (DcMotorEx m : new DcMotorEx[]{fl, bl, fr, br}) {
+            m.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            m.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        }
+
         imu = hw.get(IMU.class, "imu");
         IMU.Parameters params = new IMU.Parameters(
                 new RevHubOrientationOnRobot(
@@ -44,6 +50,14 @@ public class DriveSubsystem {
     public void resetYaw() { imu.resetYaw(); }
     public double getHeadingRad() { return imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS); }
     public double getHeadingDeg() { return imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES); }
+
+    /** Teshis: dort motorun encoder sayaclarini telemetriye basar. */
+    public void logEncoders(Telemetry t) {
+        t.addData("FL pos", fl.getCurrentPosition());
+        t.addData("FR pos", fr.getCurrentPosition());
+        t.addData("BL pos", bl.getCurrentPosition());
+        t.addData("BR pos", br.getCurrentPosition());
+    }
 
     // ---------- ROBOT-CENTRIC ----------
     // Inputs: x = strafe left(+), y = forward(+), rx = ccw(+)
@@ -58,15 +72,16 @@ public class DriveSubsystem {
     // ---------- FIELD-CENTRIC ----------
     public void driveFieldCentric(double x, double y, double rx) {
         double h = getHeadingRad();
-        double rotX = x * Math.cos(-h) - rx * Math.sin(-h);
-        double rotY = x * Math.sin(-h) + rx * Math.cos(-h);
+        // Oteleme vektorunu (x, y) -h kadar dondur; rx (donus) ayri terim
+        double rotX = x * Math.cos(-h) - y * Math.sin(-h);
+        double rotY = x * Math.sin(-h) + y * Math.cos(-h);
 
         rotX *= 1.1; // strafe boost
 
-        double flP = rotY + rotX + y;
-        double blP = rotY - rotX + y;
-        double frP = rotY - rotX - y;
-        double brP = rotY + rotX - y;
+        double flP = rotY + rotX + rx;
+        double blP = rotY - rotX + rx;
+        double frP = rotY - rotX - rx;
+        double brP = rotY + rotX - rx;
 
         normalizeAndSet(flP, frP, blP, brP);
     }
