@@ -34,7 +34,7 @@ public class LLTest extends OpMode {
             rx = LL.getGoalHeadingCorrection();
         }
 
-        drive.driveFieldCentric(x, y, rx);
+        drive.driveRobotCentric(x, y, rx);
     }
 
     @Override
