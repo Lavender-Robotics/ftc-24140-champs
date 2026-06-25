@@ -18,7 +18,7 @@ public class VisionSubsystem {
     public static final double ALIGN_DEADZONE_DEG = 1.0;
     public static final double ALIGN_MAX_TURN = 0.4;
     public static final double GOAL_HEIGHT_CM = 74.95;
-    public static final double CAMERA_HEIGHT_CM = 22.0;
+    public static final double CAMERA_HEIGHT_CM = 28.0;
     public static final double CAMERA_ANGLE_DEG = 10.0;
 
     private Limelight3A limelight;
