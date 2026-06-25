@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.opmodes.teleop;
 
+import static org.firstinspires.ftc.teamcode.subsystems.DriveSubsystem.SLOW_MODE_FACTOR;
+
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
@@ -43,6 +45,7 @@ public class MainTeleop extends LinearOpMode {
         feeder = new FeederSubsystem(hardwareMap);
         shooter = new ShooterSubsystem(hardwareMap);
         vision = new VisionSubsystem();
+        vision.init(hardwareMap);
 
 
 
@@ -52,17 +55,20 @@ public class MainTeleop extends LinearOpMode {
         waitForStart();
         if (isStopRequested()) return;
 
+        vision.start();
+
         while (opModeIsActive()) {
             double x  = gamepad1.left_stick_x;
-            double rx  = gamepad1.right_stick_x;
+            double rx = gamepad1.right_stick_x;
             double y = -gamepad1.left_stick_y;
+            double factor = gamepad1.left_trigger > 0.1 ? SLOW_MODE_FACTOR : 1.0;
 
             if (gamepad1.options) {
                 drive.resetYaw(); // robot-oriented'te şart değil; kalabilir
             }
 
 
-            drive.driveFieldCentric(x, y, rx);
+            drive.driveRobotCentric(x, y, rx, factor);
 
 
             // Intake (A)
@@ -76,9 +82,10 @@ public class MainTeleop extends LinearOpMode {
             else                            transport.stop();
 
             // Hizalama
-            if (gamepad1.y){
-                double rx = vision.getGoalHeadingCorrection();
-                drive.driveFieldCentric(gamepad1,rx,true);
+            if (gamepad1.x){
+                double turn = vision.getGoalHeadingCorrection();
+                double fwd  = vision.getGoalDistanceCorrection();
+                drive.driveRobotCentric(0,fwd,turn,1.0);
             }
             // Feeder
             if (feederToggle.update(gamepad1.y))  feeder.setEnabled(!feeder.isEnabled());
@@ -88,10 +95,11 @@ public class MainTeleop extends LinearOpMode {
 
             // Shooter - Hood
             //shooter.moveHoodManually(gamepad1.left_bumper, gamepad1.left_trigger > 0.2);
-
+            if(shooter.getVelocity() == 1200) feeder.extendServo();
             // Shooter
             if (shooterToggle.update(gamepad1.b)) {shooter.setEnabled(!shooter.isEnabled());}
             if (shooter.isEnabled()) shooter.forward(1200.0);
+
             else shooter.stop();
 
 
@@ -103,6 +111,7 @@ public class MainTeleop extends LinearOpMode {
             telemetry.addData("Shooter Enabled", shooter.isEnabled());
             telemetry.addData("Shooter Velocity", shooter.getVelocity());
             //telemetry.addData("Hood Position", shooter.getHoodPosition());
+            telemetry.addData("Distance(CM)", vision.getDistance());
 
 
             telemetry.update();

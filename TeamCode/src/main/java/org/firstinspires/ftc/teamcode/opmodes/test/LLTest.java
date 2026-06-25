@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.opmodes.test;
 
+import static org.firstinspires.ftc.teamcode.subsystems.DriveSubsystem.SLOW_MODE_FACTOR;
+
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
@@ -29,13 +31,14 @@ public class LLTest extends OpMode {
         double x  = gamepad1.left_stick_x;
         double y  = -gamepad1.left_stick_y;
         double rx = gamepad1.right_stick_x;
+        double factor = gamepad1.left_trigger > 0.1 ? SLOW_MODE_FACTOR : 1.0;
 
         // Y basılıyken dönüş gücünü stickten değil, Limelight'tan al
         if (gamepad1.y) {
             rx = LL.getGoalHeadingCorrection();
         }
 
-        drive.driveFieldCentric(x, y, rx);
+        drive.driveFieldCentric(x, y, rx, factor);
 
         // --- Teshis telemetrisi (surusu etkilemez) ---
         telemetry.addData("Heading (deg)", "%.1f", drive.getHeadingDeg());

@@ -4,12 +4,16 @@ import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.IMU;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
 public class DriveSubsystem {
+    public static final double SLOW_MODE_FACTOR = 0.35;
+    private boolean fieldCentric      = false;
+    private boolean lastRightBumper   = false;
     private final DcMotorEx fl, fr, bl, br;
     private final IMU imu;
     private final Telemetry telemetry;
@@ -58,19 +62,41 @@ public class DriveSubsystem {
         t.addData("BL pos", bl.getCurrentPosition());
         t.addData("BR pos", br.getCurrentPosition());
     }
+    public void control(Gamepad gamepad) {
+        control(gamepad, 0.0, false);
+    }
+    //public void control(Gamepad gamepad) {
+        //control(gamepad, 0.0, false);
+    //}
+    public void control(Gamepad gamepad, double rxOverride, boolean useOverride) {
+        if (gamepad.right_bumper && !lastRightBumper) {
+            fieldCentric = !fieldCentric;
+        }
+        lastRightBumper = gamepad.right_bumper;
 
+        double y      = -gamepad.left_stick_y;
+        double x      = gamepad.left_stick_x;
+        double rx     = useOverride ? rxOverride : gamepad.right_stick_x;
+        double factor = gamepad.left_trigger > 0.1 ? SLOW_MODE_FACTOR : 1.0;
+
+        if (fieldCentric) {
+            driveFieldCentric(x, y, rx, factor);
+        } else {
+            driveRobotCentric(x, y, rx, factor);
+        }
+    }
     // ---------- ROBOT-CENTRIC ----------
     // Inputs: x = strafe left(+), y = forward(+), rx = ccw(+)
-    public void driveRobotCentric(double x, double y, double rx) {
-        double flP = y + x + rx;
-        double blP = y - x + rx;
-        double frP = y - x - rx;
-        double brP = y + x - rx;
+    public void driveRobotCentric(double x, double y, double rx, double factor) {
+        double flP = y + x + rx * factor;
+        double blP = y - x + rx * factor;
+        double frP = y - x - rx * factor;
+        double brP = y + x - rx * factor;
         normalizeAndSet(flP, frP, blP, brP);
     }
 
     // ---------- FIELD-CENTRIC ----------
-    public void driveFieldCentric(double x, double y, double rx) {
+    public void driveFieldCentric(double x, double y, double rx, double factor) {
         double h = getHeadingRad();
         // Oteleme vektorunu (x, y) -h kadar dondur; rx (donus) ayri terim
         double rotX = x * Math.cos(-h) - y * Math.sin(-h);
