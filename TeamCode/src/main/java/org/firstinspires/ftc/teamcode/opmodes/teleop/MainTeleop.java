@@ -8,7 +8,7 @@ import org.firstinspires.ftc.teamcode.subsystems.IntakeSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.TransportSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.FeederSubsystem;
-//import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
+import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 
 import org.firstinspires.ftc.teamcode.util.Toggle;
@@ -26,7 +26,7 @@ public class MainTeleop extends LinearOpMode {
     private TransportSubsystem transport;
     private FeederSubsystem feeder;
     private ShooterSubsystem shooter;
-    //private VisionSubsystem vision;
+    private VisionSubsystem vision;
 
 
     // Toggles
@@ -42,7 +42,7 @@ public class MainTeleop extends LinearOpMode {
         transport = new TransportSubsystem(hardwareMap);
         feeder = new FeederSubsystem(hardwareMap);
         shooter = new ShooterSubsystem(hardwareMap);
-        //vision = new VisionSubsystem(hardwareMap, telemetry);
+        vision = new VisionSubsystem();
 
 
 
@@ -62,7 +62,7 @@ public class MainTeleop extends LinearOpMode {
             }
 
 
-            drive.driveRobotCentric(x, y, rx);
+            drive.driveFieldCentric(x, y, rx);
 
 
             // Intake (A)
@@ -75,7 +75,11 @@ public class MainTeleop extends LinearOpMode {
             else if (gamepad1.dpad_down)    transport.reverse(1.0);
             else                            transport.stop();
 
-
+            // Hizalama
+            if (gamepad1.y){
+                double rx = vision.getGoalHeadingCorrection();
+                drive.driveFieldCentric(gamepad1,rx,true);
+            }
             // Feeder
             if (feederToggle.update(gamepad1.y))  feeder.setEnabled(!feeder.isEnabled());
             if (feeder.isEnabled())         feeder.extendServo();
@@ -94,11 +98,11 @@ public class MainTeleop extends LinearOpMode {
 
             // Telemetry
             //vision.getTagTelemetry(); // for vision test
-
+            telemetry.addData("Apriltag Seen", vision.hasAnyTarget());
             telemetry.addData("Feeder Enabled", feeder.isEnabled());
             telemetry.addData("Shooter Enabled", shooter.isEnabled());
             telemetry.addData("Shooter Velocity", shooter.getVelocity());
-            telemetry.addData("Hood Position", shooter.getHoodPosition());
+            //telemetry.addData("Hood Position", shooter.getHoodPosition());
 
 
             telemetry.update();
