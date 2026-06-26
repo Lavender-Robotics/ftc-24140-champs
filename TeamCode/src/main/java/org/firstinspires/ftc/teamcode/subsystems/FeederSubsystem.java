@@ -7,7 +7,7 @@ public class FeederSubsystem {
     private Servo feeder_servo;
 
 
-    private static final double START_POS = 0.9;              // Aşağı rest (horn buraya takılır)
+    private static final double START_POS = 1.0;              // Aşağı rest (horn buraya takılır)
     private static final double HIT_POS = 0.6;     // 180° yukarı vuruş pozisyonu (0.1)
     private boolean enabled = false;
 

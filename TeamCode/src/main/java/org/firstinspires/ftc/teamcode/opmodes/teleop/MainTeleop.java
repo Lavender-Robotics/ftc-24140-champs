@@ -11,6 +11,7 @@ import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.TransportSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.FeederSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.VisionSubsystem;
+
 import org.firstinspires.ftc.teamcode.util.Toggle;
 
 @TeleOp(name = "MainTeleOp")
@@ -23,14 +24,27 @@ public class MainTeleop extends LinearOpMode {
     private FeederSubsystem feeder;
     private ShooterSubsystem shooter;
     private VisionSubsystem vision;
+    private boolean reverse = false;
 
     // Toggles
     private final Toggle feederToggle = new Toggle();
-    private final Toggle shooterToggle = new Toggle();
+    private final Toggle assistedShooterToggle = new Toggle();
+    private final Toggle manualShooterToggle = new Toggle();
+    private final Toggle intakeToggle = new Toggle();
+    private final Toggle slowModeToggle = new Toggle();
+
+    // Durum Değişkenleri
+    private boolean assistedMode = false;
+    private boolean manualMode = false;
+    private boolean isIntakeActive = false;
+    private boolean isSlowMode = false;
+
+    // Sequenced Atış ve Kicker Zamanlayıcıları
+    private long assistedStartTime = 0;
+    private long kickerTimer = 0;
 
     @Override
     public void runOpMode() throws InterruptedException {
-        // Altsistemlerin Başlatılması
         drive     = new DriveSubsystem(hardwareMap, telemetry);
         intake    = new IntakeSubsystem(hardwareMap);
         transport = new TransportSubsystem(hardwareMap);
@@ -56,71 +70,131 @@ public class MainTeleop extends LinearOpMode {
                 drive.resetYaw();
             }
 
+            // --- DYNAMIC SLOW MODE KONTROLÜ (Back Butonu) ---
+            if (slowModeToggle.update(gamepad1.back)) {
+                isSlowMode = !isSlowMode;
+            }
+
             // Şasi Sürüşü
-            drive.driveRobotCentric(x, y, rx,SLOW_MODE_FACTOR);
+            double currentDriveFactor = isSlowMode ? SLOW_MODE_FACTOR : 1.0;
+            drive.driveRobotCentric(x, y, rx, currentDriveFactor);
 
             // AprilTag ile Otomatik Hizalama (X Butonu)
             if (gamepad1.x){
                 double turn = vision.getGoalHeadingCorrection();
                 double fwd  = vision.getGoalDistanceCorrection();
-                drive.driveRobotCentric(0, fwd, turn,SLOW_MODE_FACTOR);
+                drive.driveRobotCentric(0, fwd, turn, currentDriveFactor);
             }
 
-            // --- SHOOTER KONTROLÜ (B Butonu Toggle) ---
-            if (shooterToggle.update(gamepad1.b)) {
-                shooter.setEnabled(!shooter.isEnabled());
+            // --- INTAKE TOGGLE / MANUAL REVERSE KONTROLÜ (A ve Dpad) ---
+            if (gamepad1.dpad_down) {
+                intake.stop();
+                transport.reverse(1.0);
+                reverse = true;
+                isIntakeActive = false;
+            } else if (gamepad1.dpad_up) {
+                intake.stop();
+                transport.forward(1.0);
+                reverse = true;
+                isIntakeActive = false;
+            } else {
+                reverse = false;
+
+                if (intakeToggle.update(gamepad1.a)) {
+                    isIntakeActive = !isIntakeActive;
+                    if (isIntakeActive) {
+                        assistedMode = false;
+                        manualMode = false;
+                    }
+                }
             }
 
-            if (shooter.isEnabled()) {
-                shooter.forward(1200.0);
+            // --- SHOOTER MOD SEÇİMLERİ (B ve RB) ---
+            if (assistedShooterToggle.update(gamepad1.b)) {
+                assistedMode = !assistedMode;
+                if (assistedMode) {
+                    manualMode = false;
+                    isIntakeActive = false;
+
+                    assistedStartTime = System.currentTimeMillis();
+                    kickerTimer = System.currentTimeMillis();
+                }
+            }
+
+            if (manualShooterToggle.update(gamepad1.right_bumper)) {
+                manualMode = !manualMode;
+                if (manualMode) {
+                    assistedMode = false;
+                    isIntakeActive = false;
+                }
+            }
+
+            // Shooter kesintisiz dönme kuralı
+            if (assistedMode || manualMode) {
+                shooter.forward(1000.0);
             } else {
                 shooter.stop();
             }
 
 
+            // --- TRANSPORT VE INTAKE'İN HİÇ DURMADIĞI SEQUENCE SHOOTING ---
+            if (assistedMode) {
+                long elapsedTime = System.currentTimeMillis() - assistedStartTime;
 
-            if (gamepad1.a || gamepad1.dpad_up || shooter.isEnabled()) {
-                transport.forward(1.0);
+                if (elapsedTime < 2000) {
+                    // HIZLANMA FAZI: İlk 2 saniye shooter hızlanırken topları koruma amaçlı geride tut
+                    transport.reverse(0.2);
+                    intake.stop();
+                    feeder.retractServo();
+                    kickerTimer = System.currentTimeMillis();
+                }
+                else {
+                    // İSTEDİĞİN GÜNCELLEME: B modu aktif ve ilk hızlanma bittiyse,
+                    // hız veya döngü ne olursa olsun transport ve intake HİÇ DURMADAN sürekli dönüyor.
+                    transport.forward(0.65);
+                    intake.forward(0.5);
 
-                if (shooter.isEnabled()) {
-                    intake.forward(0.7);  // Shooter aktifken ring besleme hızı
-                } else if (gamepad1.a) {
-                    intake.forward(1.0);  // Sadece A basılıysa tam güç intake
-                } else {
-                    intake.stop();        // dpad_up basılıysa intake dursun, sadece transport dönsün
+                    // Toplam Periyot: 1200ms (500ms Kicker Yukarıda / 700ms Kicker Aşağıda)
+                    long cycleTime = (System.currentTimeMillis() - kickerTimer) % 1200;
+                    boolean kickerExtended = (cycleTime < 500);
+
+                    // Kicker sadece shooter hızı güvenli limitin (1000 RPM) üzerindeyse çalışır
+                    if (shooter.getVelocity() >= 1000) {
+                        if (kickerExtended) {
+                            feeder.extendServo(); // Kicker yukarı vuruyor, transport zaten arkadan ringi presliyor
+                        } else {
+                            feeder.retractServo(); // Kicker aşağı inip sonraki ringin yolunu açıyor
+                        }
+                    } else {
+                        // Eğer shooter hızı 1000'in altına düşerse, motor toparlanana kadar kicker güvenle aşağıda bekler
+                        feeder.retractServo();
+                    }
                 }
             }
-            else if (gamepad1.dpad_down) {
-                transport.reverse(1.0);
-                intake.stop();
-            }
-            else {
-                // Hiçbir butona basılmıyorsa ve shooter kapalıysa her şeyi güvenle durdur
-                transport.stop();
-                intake.stop();
-            }
-
-
-            // --- FEEDER KONTROLÜ (Y Butonu Toggle & Otomatik Tetikleme) ---
-            if (feederToggle.update(gamepad1.y)) {
-                feeder.setEnabled(!feeder.isEnabled());
-            }
-
-            // Eğer Y ile feeder açıldıysa VEYA shooter çalışıp yeterli hıza ulaştıysa tetiği uzat
-            // (== 1200 kontrolü motor dalgalanmasından dolayı takılabileceği için >= 1150 yapıldı)
-            if (feeder.isEnabled() || (shooter.isEnabled() && shooter.getVelocity() >= 1150)) {
-                feeder.extendServo();
-            } else {
+            else if (isIntakeActive) {
+                intake.forward(1.0);
+                transport.forward(0.6);
                 feeder.retractServo();
             }
+            else if (!reverse) {
+                intake.stop();
+                transport.stop();
 
+                if (feederToggle.update(gamepad1.y)) {
+                    feeder.setEnabled(!feeder.isEnabled());
+                }
+
+                if (feeder.isEnabled()) {
+                    feeder.extendServo();
+                } else {
+                    feeder.retractServo();
+                }
+            }
 
             // Telemetry Verileri
-            telemetry.addData("Apriltag Seen", vision.hasAnyTarget());
-            telemetry.addData("Feeder Enabled", feeder.isEnabled());
-            telemetry.addData("Shooter Enabled", shooter.isEnabled());
+            telemetry.addData("Slow Mode (Back)", isSlowMode ? "AKTİF (YAVAŞ)" : "KAPALI (TAM GÜÇ)");
+            telemetry.addData("[MOD] Sequenced Shooting (B)", assistedMode ? "TAM KESİNTİSİZ BESLEME" : "KAPALI");
             telemetry.addData("Shooter Velocity", shooter.getVelocity());
-            telemetry.addData("Distance(CM)", vision.getDistance());
             telemetry.update();
         }
     }
