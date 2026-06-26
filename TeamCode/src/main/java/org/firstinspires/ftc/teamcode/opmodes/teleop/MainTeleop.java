@@ -72,12 +72,13 @@ public class MainTeleop extends LinearOpMode {
 
 
             // Intake (A)
-            if (gamepad1.a){ intake.forward(1.0); transport.forward(1.0);}
-            else intake.stop();
+            if (gamepad1.a){ //intake.forward(1.0);
+                transport.forward(1.0);}
+            else transport.stop();
 
 
             // Transport
-            if (gamepad1.dpad_down)    {transport.reverse(1.0); intake.reverse(1.0);}
+            if (gamepad1.dpad_down)    {transport.reverse(1.0); /*intake.reverse(1.0);*/}
             else                            transport.stop();
 
             // Hizalama
