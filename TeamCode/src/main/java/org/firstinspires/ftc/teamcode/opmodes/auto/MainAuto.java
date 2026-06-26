@@ -81,7 +81,7 @@ public class MainAuto extends OpMode {
             // 2) Vision ile hizalan: mesafe -> ileri/geri, heading -> donus
             double forward = vision.getGoalDistanceCorrection();
             double turn    = vision.getGoalHeadingCorrection();
-            drive.driveRobotCentric(0.0, forward, turn, 1.0);
+            //drive.driveRobotCentric(0.0, forward, turn, 1.0);
         } else {
             // 3) Hizalama bitti: yerinde dur, shooter + feeder + intake + transport
             stop();

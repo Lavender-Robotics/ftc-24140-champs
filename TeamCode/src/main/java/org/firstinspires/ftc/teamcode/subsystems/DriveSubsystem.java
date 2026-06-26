@@ -11,7 +11,7 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
 public class DriveSubsystem {
-    public static final double aSLOW_MODE_FACTOR = 0.35;
+    public static final double SLOW_MODE_FACTOR = 0.35;
     private boolean fieldCentric      = false;
     private boolean lastRightBumper   = false;
     private final DcMotorEx fl, fr, bl, br;
