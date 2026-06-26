@@ -72,13 +72,12 @@ public class MainTeleop extends LinearOpMode {
 
 
             // Intake (A)
-            if (gamepad1.a) intake.forward(1.0);
+            if (gamepad1.a){ intake.forward(1.0); transport.forward(1.0);}
             else intake.stop();
 
 
             // Transport
-            if (gamepad1.dpad_up)           transport.forward(1.0);
-            else if (gamepad1.dpad_down)    transport.reverse(1.0);
+            if (gamepad1.dpad_down)    {transport.reverse(1.0); intake.reverse(1.0);}
             else                            transport.stop();
 
             // Hizalama
@@ -98,7 +97,7 @@ public class MainTeleop extends LinearOpMode {
             if(shooter.getVelocity() == 1200) feeder.extendServo();
             // Shooter
             if (shooterToggle.update(gamepad1.b)) {shooter.setEnabled(!shooter.isEnabled());}
-            if (shooter.isEnabled()) shooter.forward(1200.0);
+            if (shooter.isEnabled()) {shooter.forward(1200.0); intake.forward(0.7); transport.forward(1.0);}
 
             else shooter.stop();
 

@@ -22,7 +22,7 @@ public class VisionSubsystem {
     public static final double CAMERA_ANGLE_DEG = 10.0;
 
     public static final double TARGET_DISTANCE = 115.0;
-    public static final double DISTANCE_KP = 0.03;
+    public static final double DISTANCE_KP = 0.04;
     public static final double DISTANCE_DEADZONE_CM = 0.5;
     public static final double DISTANCE_MAX_POWER = 0.4;
 
