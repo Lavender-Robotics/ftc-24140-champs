@@ -151,8 +151,8 @@ public class MainTeleop extends LinearOpMode {
                 else {
                     // İSTEDİĞİN GÜNCELLEME: B modu aktif ve ilk hızlanma bittiyse,
                     // hız veya döngü ne olursa olsun transport ve intake HİÇ DURMADAN sürekli dönüyor.
-                    transport.forward(0.65);
-                    intake.forward(0.5);
+                    transport.forward(0.8);
+                    intake.forward(0.7);
 
                     // Toplam Periyot: 1200ms (500ms Kicker Yukarıda / 700ms Kicker Aşağıda)
                     long cycleTime = (System.currentTimeMillis() - kickerTimer) % 1200;
