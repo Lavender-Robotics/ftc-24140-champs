@@ -41,7 +41,6 @@ public class MainTeleop extends LinearOpMode {
 
     // Sequenced Atış ve Kicker Zamanlayıcıları
     private long assistedStartTime = 0;
-    private long kickerTimer = 0;
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -79,16 +78,9 @@ public class MainTeleop extends LinearOpMode {
             double currentDriveFactor = isSlowMode ? SLOW_MODE_FACTOR : 1.0;
             drive.driveRobotCentric(x, y, rx, currentDriveFactor);
 
-            // AprilTag ile Otomatik Hizalama (X Butonu)
-            if (gamepad1.x){
-                double turn = vision.getGoalHeadingCorrection();
-                double fwd  = vision.getGoalDistanceCorrection();
-                drive.driveRobotCentric(0, fwd, turn, currentDriveFactor);
-            }
-
             // --- INTAKE TOGGLE / MANUAL REVERSE KONTROLÜ (A ve Dpad) ---
             if (gamepad1.dpad_down) {
-                intake.stop();
+                intake.reverse(1.0);
                 transport.reverse(1.0);
                 reverse = true;
                 isIntakeActive = false;
@@ -115,9 +107,7 @@ public class MainTeleop extends LinearOpMode {
                 if (assistedMode) {
                     manualMode = false;
                     isIntakeActive = false;
-
                     assistedStartTime = System.currentTimeMillis();
-                    kickerTimer = System.currentTimeMillis();
                 }
             }
 
@@ -129,7 +119,7 @@ public class MainTeleop extends LinearOpMode {
                 }
             }
 
-            // Shooter kesintisiz dönme kuralı
+            // Shooter kesintisiz dönme kuralı (İstediğin gibi 1000.0 velocity)
             if (assistedMode || manualMode) {
                 shooter.forward(1000.0);
             } else {
@@ -137,43 +127,62 @@ public class MainTeleop extends LinearOpMode {
             }
 
 
-            // --- TRANSPORT VE INTAKE'İN HİÇ DURMADIĞI SEQUENCE SHOOTING ---
+            // --- TAMAMEN YENİLENEN ZAMAN AYARLI SEQUENCE SHOOTING MACROSU ---
             if (assistedMode) {
                 long elapsedTime = System.currentTimeMillis() - assistedStartTime;
 
-                if (elapsedTime < 2000) {
-                    // HIZLANMA FAZI: İlk 2 saniye shooter hızlanırken topları koruma amaçlı geride tut
-                    transport.reverse(0.2);
-                    intake.stop();
+                if (elapsedTime < 4000) {
+                    // 1. ADIM: İlk 4 saniye shooter 1000 hızında döner, mekanizmalar bekler.
                     feeder.retractServo();
-                    kickerTimer = System.currentTimeMillis();
+                    transport.stop();
+                    intake.stop();
+                }
+                else if (elapsedTime >= 4000 && elapsedTime < 4750) {
+                    // 2. ADIM: 4 saniye geçince feeder extendServo yapar (750ms sürer)
+                    feeder.extendServo();
+                    transport.stop();
+                    intake.stop();
+                }
+                else if (elapsedTime >= 4750 && elapsedTime < 5750) {
+                    // 3. ADIM: 750ms sonra feeder retractServo olur ve transport forward çalışır (1 saniye sürer)
+                    feeder.retractServo();
+                    transport.forward(0.8);
+                    intake.stop();
+                }
+                else if (elapsedTime >= 5750 && elapsedTime < 6500) {
+                    // 4. ADIM: 1 saniye geçince transport durur ve feeder extendServo yapar (750ms sürer)
+                    feeder.extendServo();
+                    transport.stop();
+                    intake.stop();
+                }
+                else if (elapsedTime >= 6500 && elapsedTime < 9000) {
+                    // 5. ADIM: 750ms sonra feeder retractServo olur ve intake 2500ms boyunca forward çalışır
+                    feeder.retractServo();
+                    transport.stop();
+                    intake.forward(1.0);
+                }
+                else if (elapsedTime >= 9000 && elapsedTime < 10000) {
+                    // 6. ADIM: Süre bitince intake durur, transport 1 saniye boyunca forward çalışır
+                    feeder.retractServo();
+                    transport.forward(0.8);
+                    intake.stop();
+                }
+                else if (elapsedTime >= 10000 && elapsedTime < 10750) {
+                    // 7. ADIM: Ardından transport durur ve kicker extended (feeder extend) olur (750ms sürer)
+                    feeder.extendServo();
+                    transport.stop();
+                    intake.stop();
                 }
                 else {
-                    // İSTEDİĞİN GÜNCELLEME: B modu aktif ve ilk hızlanma bittiyse,
-                    // hız veya döngü ne olursa olsun transport ve intake HİÇ DURMADAN sürekli dönüyor.
-                    transport.forward(0.8);
-                    intake.forward(0.7);
-
-                    // Toplam Periyot: 1200ms (500ms Kicker Yukarıda / 700ms Kicker Aşağıda)
-                    long cycleTime = (System.currentTimeMillis() - kickerTimer) % 1200;
-                    boolean kickerExtended = (cycleTime < 500);
-
-                    // Kicker sadece shooter hızı güvenli limitin (1000 RPM) üzerindeyse çalışır
-                    if (shooter.getVelocity() >= 1000) {
-                        if (kickerExtended) {
-                            feeder.extendServo(); // Kicker yukarı vuruyor, transport zaten arkadan ringi presliyor
-                        } else {
-                            feeder.retractServo(); // Kicker aşağı inip sonraki ringin yolunu açıyor
-                        }
-                    } else {
-                        // Eğer shooter hızı 1000'in altına düşerse, motor toparlanana kadar kicker güvenle aşağıda bekler
-                        feeder.retractServo();
-                    }
+                    // 8. ADIM: 750ms sonra feeder retractServo yapar ve makro tamamen biterek kapanır.
+                    feeder.retractServo();
+                    transport.stop();
+                    intake.stop();
+                    assistedMode = false; // B'ye tekrar bastığında sıfırdan başlaması için modu kapatır.
                 }
             }
             else if (isIntakeActive) {
                 intake.forward(1.0);
-                transport.forward(0.6);
                 feeder.retractServo();
             }
             else if (!reverse) {
@@ -193,7 +202,7 @@ public class MainTeleop extends LinearOpMode {
 
             // Telemetry Verileri
             telemetry.addData("Slow Mode (Back)", isSlowMode ? "AKTİF (YAVAŞ)" : "KAPALI (TAM GÜÇ)");
-            telemetry.addData("[MOD] Sequenced Shooting (B)", assistedMode ? "TAM KESİNTİSİZ BESLEME" : "KAPALI");
+            telemetry.addData("[MOD] Sequenced Shooting (B)", assistedMode ? "SENKRONİZE MAKRO AKTİF" : "KAPALI");
             telemetry.addData("Shooter Velocity", shooter.getVelocity());
             telemetry.update();
         }
