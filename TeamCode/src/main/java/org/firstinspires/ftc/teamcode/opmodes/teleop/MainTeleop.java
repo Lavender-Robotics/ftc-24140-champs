@@ -80,7 +80,7 @@ public class MainTeleop extends LinearOpMode {
 
             // --- INTAKE TOGGLE / MANUAL REVERSE KONTROLÜ (A ve Dpad) ---
             if (gamepad1.dpad_down) {
-                intake.reverse(1.0);
+                shooter.reverse(100);
                 transport.reverse(1.0);
                 reverse = true;
                 isIntakeActive = false;
@@ -91,7 +91,12 @@ public class MainTeleop extends LinearOpMode {
                 isIntakeActive = false;
             } else {
                 reverse = false;
+                if(gamepad1.dpad_right){
+                    intake.reverse(1.0);
+                    reverse = true;
+                    isIntakeActive = false;
 
+                }
                 if (intakeToggle.update(gamepad1.a)) {
                     isIntakeActive = !isIntakeActive;
                     if (isIntakeActive) {
